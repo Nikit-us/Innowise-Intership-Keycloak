@@ -1,5 +1,8 @@
 package com.innowise;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -16,11 +19,14 @@ public class RabbitMqEventListenerProviderFactory implements EventListenerProvid
     private RabbitMqConfig config;
     private Connection connection;
     private Channel channel;
+    private ObjectMapper objectMapper;
 
     @Override
     public EventListenerProvider create(KeycloakSession session) {
         initConnection();
-        return new RabbitMqEventListenerProvider(config, channel, session);
+        MessagePublisher publisher = new RabbitMqMessagePublisher(connection, config, objectMapper);
+        UserService userService = new UserService(session);
+        return new RabbitMqEventListenerProvider(publisher, userService);
     }
 
     private synchronized void initConnection() {
@@ -50,6 +56,9 @@ public class RabbitMqEventListenerProviderFactory implements EventListenerProvid
     @Override
     public void init(Config.Scope config) {
         this.config = new RabbitMqConfig();
+        this.objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     @Override
