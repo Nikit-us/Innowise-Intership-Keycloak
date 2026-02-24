@@ -4,17 +4,17 @@ services:
     container_name: keycloak
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${DB_NAME}
+      KC_DB_USERNAME: ${DB_USERNAME}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${ADMIN_NAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${ADMIN_PASS}
       KC_HOSTNAME_STRICT: "false"
       KC_LOG_LEVEL: INFO
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest
+      RABBITMQ_USERNAME: ${MQ_USERNAME}
+      RABBITMQ_PASSWORD: ${MQ_PASSWORD}
       RABBITMQ_VHOST: /
       RABBITMQ_EXCHANGE: keycloak.events
     ports:
@@ -36,15 +36,15 @@ services:
     image: postgres:16-alpine
     container_name: keycloak-db
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - keycloak_db_data:/var/lib/postgresql/data
     networks:
       - keycloak-net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U keycloak" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_NAME}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -56,8 +56,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${MQ_PASS}
     networks:
       - keycloak-net
 
