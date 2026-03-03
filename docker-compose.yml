@@ -1,0 +1,69 @@
+services:
+  keycloak:
+    build: .
+    container_name: keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${DB_NAME}
+      KC_DB_USERNAME: ${DB_USERNAME}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${ADMIN_NAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${ADMIN_PASS}
+      KC_HOSTNAME_STRICT: "false"
+      KC_LOG_LEVEL: INFO
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${MQ_USERNAME}
+      RABBITMQ_PASSWORD: ${MQ_PASSWORD}
+      RABBITMQ_VHOST: /
+      RABBITMQ_EXCHANGE: keycloak.events
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/opt/keycloak/data/import/:ro
+    command:
+      - start-dev
+      - --import-realm
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - keycloak-net
+
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: keycloak-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - keycloak-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${MQ_PASS}
+    networks:
+      - keycloak-net
+
+networks:
+  keycloak-net:
+    driver: bridge
+
+volumes:
+  keycloak_db_data:
